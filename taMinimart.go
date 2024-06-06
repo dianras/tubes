@@ -4,17 +4,28 @@ import "fmt"
 
 const nmax = 2024
 
+
+/* Tipe bentukan struktur item dengan atribut:
+	No Produk (integer), Price (integer), Quantity (integer), 
+	Name (string), dan Transaction (integer) */
 type item struct {
 	noProduct, Price, Quantity int
 	Name                       string
 	Transaction                int
 }
-
+/* 	
+	Tipe bentukan struktur transaction dengan atribut:
+	Sold (integer) dan Price (integer) 
+*/
 type transaction struct {
 	Sold  int
 	Price int
 }
 
+/* 	
+	Tipe alias arrItem untuk array dari item dengan ukuran nmax 
+	dan tipe alias arrTrans untuk array dari Transaction dengan ukuran nmax
+*/
 type (
 	arrItem  [nmax]item
 	arrTrans [nmax]transaction
@@ -57,7 +68,7 @@ func bye() {
 }
 
 func clearScreen() {
-
+	fmt.Print("\033[H\033[2J")
 }
 
 func menuUtama(p *int) {
@@ -81,10 +92,12 @@ func menuPenjualan(items *arrItem, n *int) {
 		fmt.Println("     MENU PENJUALAN     ")
 		fmt.Println("-----------------------")
 		fmt.Println("1. Daftar Barang")
-		fmt.Println("2. Tambah Barang")
-		fmt.Println("3. Ubah Barang")
-		fmt.Println("4. Hapus Barang")
-		fmt.Println("5. Kembali")
+		fmt.Println("2. Daftar Barang Berdasarkan Stok Terbanyak")
+		fmt.Println("3. Daftar Barang Berdasarkan Harga Terendah")
+		fmt.Println("4. Tambah Barang")
+		fmt.Println("5. Ubah Barang")
+		fmt.Println("6. Hapus Barang")
+		fmt.Println("7. Kembali")
 		fmt.Println("-----------------------")
 		fmt.Print("Pilih: ")
 		fmt.Scan(&pilih)
@@ -92,12 +105,16 @@ func menuPenjualan(items *arrItem, n *int) {
 		if pilih == 1 {
 			listItem(*items, *n)
 		} else if pilih == 2 {
-			addItem(items, n)
+			listItemByStock(*items, *n)
 		} else if pilih == 3 {
-			updateItem(items, *n)
+			listItemByPrice(*items, *n)
 		} else if pilih == 4 {
-			deleteItem(items, n)
+			addItem(items, n)
 		} else if pilih == 5 {
+			updateItem(items, *n)
+		} else if pilih == 6 {
+			deleteItem(items, n)
+		} else if pilih == 7 {
 			clearScreen()
 			break
 		} else {
@@ -106,13 +123,37 @@ func menuPenjualan(items *arrItem, n *int) {
 	}
 }
 
-func findItem(items arrItem, n int, noProduct int) int {
+func findSeq(items arrItem, n int, noProduct int) int {
 	for i := 0; i < n; i++ {
 		if items[i].noProduct == noProduct {
 			return i
 		}
 	}
 	return -1
+}
+
+func selectionSortByStock(A *arrItem, n int) {
+	for pass := 0; pass < n-1; pass++ {
+		maxIdx := pass
+		for i := pass + 1; i < n; i++ {
+			if A[i].Quantity > A[maxIdx].Quantity || (A[i].Quantity == A[maxIdx].Quantity && A[i].noProduct < A[maxIdx].noProduct) {
+				maxIdx = i
+			}
+		}
+		A[pass], A[maxIdx] = A[maxIdx], A[pass]
+	}
+}
+
+func insertionSortByPrice(A *arrItem, n int) {
+	for i := 1; i < n; i++ {
+		key := A[i]
+		j := i - 1
+		for j >= 0 && (A[j].Price > key.Price || (A[j].Price == key.Price && A[j].noProduct > key.noProduct)) {
+			A[j+1] = A[j]
+			j--
+		}
+		A[j+1] = key
+	}
 }
 
 func listItem(A arrItem, n int) {
@@ -124,6 +165,29 @@ func listItem(A arrItem, n int) {
 	}
 	fmt.Println()
 }
+
+func listItemByStock(A arrItem, n int) {
+	clearScreen()
+	selectionSortByStock(&A, n)
+
+	fmt.Printf("%2s %15s %12s %10s\n", "No", "Nama Barang", "Harga", "Stok")
+	for i := 0; i < n; i++ {
+		fmt.Printf("%2d %15s %12d %10d\n", A[i].noProduct, A[i].Name, A[i].Price, A[i].Quantity)
+	}
+	fmt.Println()
+}
+
+func listItemByPrice(A arrItem, n int) {
+	clearScreen()
+	insertionSortByPrice(&A, n)
+
+	fmt.Printf("%2s %15s %12s %10s\n", "No", "Nama Barang", "Harga", "Stok")
+	for i := 0; i < n; i++ {
+		fmt.Printf("%2d %15s %12d %10d\n", A[i].noProduct, A[i].Name, A[i].Price, A[i].Quantity)
+	}
+	fmt.Println()
+}
+
 
 func addItem(A *arrItem, n *int) {
 	if *n >= nmax {
@@ -147,7 +211,7 @@ func updateItem(A *arrItem, n int) {
 	var noProduct int
 	fmt.Print("Masukkan No Produk yang ingin diubah: ")
 	fmt.Scan(&noProduct)
-	index := findItem(*A, n, noProduct)
+	index := findSeq(*A, n, noProduct)
 	if index == -1 {
 		fmt.Println("Barang tidak ditemukan!")
 		return
@@ -165,7 +229,7 @@ func deleteItem(A *arrItem, n *int) {
 	var noProduct int
 	fmt.Print("Masukkan No Produk yang ingin dihapus: ")
 	fmt.Scan(&noProduct)
-	index := findItem(*A, *n, noProduct)
+	index := findSeq(*A, *n, noProduct)
 	if index == -1 {
 		fmt.Println("Barang tidak ditemukan!")
 		return
@@ -211,7 +275,7 @@ func CatatTransaksi(A *arrItem, B *arrTrans, n int) {
 	clearScreen()
 	fmt.Print("Masukkan No Produk: ")
 	fmt.Scan(&noProduct)
-	index := findItem(*A, n, noProduct)
+	index := findSeq(*A, n, noProduct)
 	if index == -1 {
 		fmt.Println("Barang tidak ditemukan!")
 		return
